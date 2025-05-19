@@ -100,10 +100,10 @@
   <body>
     <header>MQTT 聊天室</header>
 
-    <!-- ████████  訊息區  ████████ -->
+    <!--   訊息區   -->
     <main id="chat"></main>
 
-    <!-- ████████  送出區  ████████ -->
+    <!--   送出區   -->
     <footer>
       <form id="send-form">
         <input
@@ -120,11 +120,11 @@
           autocomplete="off"
           required
         />
-        <button type="submit">送出</button>
+        <button id="send-form" type="submit">送出</button>
       </form>
     </footer>
 
-    <!-- ████████  JavaScript  ████████ -->
+    <!--   JavaScript   -->
     <script>
       const client = mqtt.connect("wss://test.mosquitto.org:8081"); // 改用安全 wss 連線
       const TOPIC = "/chc/chat";
@@ -166,7 +166,7 @@
 
       // 將訊息加入畫面
       function appendMessage(name, content) {
-        const bubble = document.createElement("div");
+        const bubble = document.createElement("main");
         bubble.className =
           "message" + (name === nameInput.value.trim() ? " self" : "");
         bubble.innerHTML = `<strong>${name}：</strong> ${content}`;
