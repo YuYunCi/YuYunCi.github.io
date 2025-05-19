@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MQTT 聊天室</title>
+    <!-- MQTT JS -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- ████████  介面樣式  ████████ -->
+    <style>
+      :root {
+        /* 溫暖色系 */
+        --primary: #ff914d; /* 深橘 */
+        --primary-light: #ffb27f; /* 淺橘 */
+        --accent: #ff6f61; /* 珊瑚紅 */
+        --bg: #fff8f5; /* 米白 */
+        --text: #3d3d3d;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        font-family: "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        background: var(--primary);
+        color: #fff;
+        padding: 0.75rem 1rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      main#chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 0.5rem 1rem;
+        overflow-y: auto;
+      }
+      .message {
+        max-width: 70%;
+        padding: 0.5rem 0.75rem;
+        margin: 0.25rem 0;
+        border-radius: 12px;
+        word-break: break-word;
+        background: var(--primary-light);
+      }
+      .message.self {
+        margin-left: auto;
+        background: var(--accent);
+        color: #fff;
+      }
+      footer {
+        border-top: 1px solid var(--primary-light);
+        padding: 0.5rem;
+      }
+      #send-form {
+        display: flex;
+        gap: 0.5rem;
+      }
+      #send-form input {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid var(--primary-light);
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+      #send-form button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      #send-form button:hover {
+        background: var(--accent);
+      }
+
+      /* 行動裝置最佳化 */
+      @media (max-width: 600px) {
+        .message {
+          max-width: 85%;
+        }
+        #send-form {
+          flex-direction: column;
+        }
+        #send-form button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>MQTT 聊天室</header>
+
+    <!-- ████████  訊息區  ████████ -->
+    <main id="chat"></main>
+
+    <!-- ████████  送出區  ████████ -->
+    <footer>
+      <form id="send-form">
+        <input
+          id="input_name"
+          type="text"
+          placeholder="姓名"
+          required
+          style="max-width: 8rem"
+        />
+        <input
+          id="connect"
+          type="text"
+          placeholder="輸入訊息…"
+          autocomplete="off"
+          required
+        />
+        <button type="submit">送出</button>
+      </form>
+    </footer>
+
+    <!-- ████████  JavaScript  ████████ -->
+    <script>
+      const client = mqtt.connect("wss://test.mosquitto.org:8081"); // 改用安全 wss 連線
+      const TOPIC = "/chc/chat";
+
+      const chat = document.getElementById("chat");
+      const nameInput = document.getElementById("input_name");
+      const msgInput = document.getElementById("connect");
+
+      // 送出訊息
+      document.getElementById("send-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!nameInput.value.trim() || !msgInput.value.trim()) return;
+
+        const msgObj = {
+          name: nameInput.value.trim(),
+          content: msgInput.value.trim(),
+          datetime: new Date().toISOString(),
+        };
+        client.publish(TOPIC, JSON.stringify(msgObj));
+        msgInput.value = ""; // 清空輸入框
+      });
+
+      // 連線後訂閱
+      client.on("connect", () => {
+        console.log("MQTT connected");
+        client.subscribe(TOPIC);
+      });
+
+      // 接收訊息
+      client.on("message", (topic, payload) => {
+        if (topic !== TOPIC) return;
+        try {
+          const { name, content } = JSON.parse(payload);
+          appendMessage(name, content);
+        } catch (err) {
+          console.error(err);
+        }
+      });
+
+      // 將訊息加入畫面
+      function appendMessage(name, content) {
+        const bubble = document.createElement("div");
+        bubble.className =
+          "message" + (name === nameInput.value.trim() ? " self" : "");
+        bubble.innerHTML = `<strong>${name}：</strong> ${content}`;
+        chat.appendChild(bubble);
+        chat.scrollTop = chat.scrollHeight; // 自動捲到底
+      }
+    </script>
+  </body>
+</html>
